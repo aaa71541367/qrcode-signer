@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code 掃描器</title>
+    <link rel="stylesheet" href="style.css"> <!-- 引入 CSS 檔案 -->
+    <script src="html5-qrcode.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>QR Code 掃描器</h1>
+        <div id="my-qr-reader" class="section">
+            <!-- 顯示相機畫面 -->
+            <div id="reader" style="width: 100%;"></div>
+        </div>
+        <p id="result">掃描結果將顯示在這裡</p>
+    </div>
+
+    <script>
+        let lastDecodedText = ""; // 儲存上次的掃描結果
+
+        // 設定 QR code 掃描器
+        function onScanSuccess(decodedText, decodedResult) {
+            if (decodedText !== lastDecodedText) {
+                lastDecodedText = decodedText;
+
+                // 顯示結果
+                document.getElementById("result").innerText = "簽到成功";
+
+                // 發送結果到後端
+                fetch('https://www.penguin.com.tw/api/scan-result', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ result: decodedText })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Response from server:', data);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+        }
+
+        function onScanFailure(error) {
+            // 在失敗時處理錯誤
+            console.warn(`掃描失敗: ${error}`);
+        }
+
+        // 初始化 HTML5 QR code 掃描器
+        let html5QrCode = new Html5Qrcode("reader");
+
+        // 開始掃描
+        Html5Qrcode.getCameras().then(cameras => {
+            if (cameras && cameras.length) {
+                // 使用後置相機
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    {
+                        fps: 10,
+                        qrbox: 250
+                    },
+                    onScanSuccess,
+                    onScanFailure
+                );
+            } else {
+                alert("找不到相機");
+            }
+        }).catch(err => {
+            console.error(err);
+            alert("相機啟用失敗：" + err);
+        });
+    </script>
+</body>
+</html>
